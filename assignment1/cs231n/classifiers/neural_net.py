@@ -80,7 +80,12 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # First layer: X * W1 + b1
+        hidden_layer = np.dot(X, W1) + b1
+        # ReLU activation
+        hidden_layer_relu = np.maximum(0, hidden_layer)
+        # Second layer: hidden * W2 + b2
+        scores = np.dot(hidden_layer_relu, W2) + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +103,20 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Softmax loss computation
+        # Shift scores for numerical stability
+        shifted_scores = scores - np.max(scores, axis=1, keepdims=True)
+        exp_scores = np.exp(shifted_scores)
+        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+        
+        # Cross-entropy loss
+        correct_logprobs = -np.log(probs[range(N), y])
+        data_loss = np.sum(correct_logprobs) / N
+        
+        # L2 regularization
+        reg_loss = reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        
+        loss = data_loss + reg_loss
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +129,23 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Gradient of softmax loss
+        dscores = probs.copy()
+        dscores[range(N), y] -= 1
+        dscores /= N
+        
+        # Backprop into W2 and b2
+        grads['W2'] = np.dot(hidden_layer_relu.T, dscores) + 2 * reg * W2
+        grads['b2'] = np.sum(dscores, axis=0)
+        
+        # Backprop into hidden layer
+        dhidden = np.dot(dscores, W2.T)
+        # Backprop through ReLU
+        dhidden[hidden_layer_relu <= 0] = 0
+        
+        # Backprop into W1 and b1
+        grads['W1'] = np.dot(X.T, dhidden) + 2 * reg * W1
+        grads['b1'] = np.sum(dhidden, axis=0)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -156,7 +190,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            # Sample random indices for the minibatch
+            batch_indices = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[batch_indices]
+            y_batch = y[batch_indices]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +209,11 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            # SGD parameter updates
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b2'] -= learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +259,13 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Forward pass to get scores
+        hidden_layer = np.dot(X, self.params['W1']) + self.params['b1']
+        hidden_layer_relu = np.maximum(0, hidden_layer)
+        scores = np.dot(hidden_layer_relu, self.params['W2']) + self.params['b2']
+        
+        # Predict class with highest score
+        y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
